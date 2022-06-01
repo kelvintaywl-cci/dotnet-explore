@@ -58,6 +58,7 @@ jobs:
       - run:
           name: Build MSI
           shell: powershell.exe
+          no_output_timeout: 50m
           command: |
             cd 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\'
             Write-Host "CDed into C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\"
