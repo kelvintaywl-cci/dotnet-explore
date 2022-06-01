@@ -1,0 +1,65 @@
+version: 2.1
+
+orbs:
+  win: circleci/windows@4.1
+
+jobs:  
+  build:
+    executor:
+      name: win/default   
+    steps:
+      - checkout
+      - run:
+          name: Checkout Latest Branch
+          shell: bash.exe
+          command: |
+            Build_Version=$(git describe --tags `git rev-list --tags --max-count=1`) 
+            echo "export Build_Version=$Build_Version" >> $BASH_ENV
+            mkdir workspace
+            echo "export Build_Version=$Build_Version" >> workspace/variables_file
+            echo "Build_Version=$Build_Version" >> workspace/variables_file_win
+            git checkout $Build_Version;
+            echo "*******Build_Version is $Build_Version ****"          
+#       - run:
+#           name: Restore and build
+#           shell: powershell.exe
+#           command: |
+#             $AppProps = convertfrom-stringdata (get-content workspace/variables_file_win -raw)
+#             write-host $AppProps.Build_Version
+#             $Build_Version = $AppProps.Build_Version
+#             write-host $Build_Version
+#             NuGet sources Add -Name Artifactory -Source https://sosartifactory.jfrog.io/artifactory/api/nuget/TT_Dev -username $env:JFUSER -password $env:JFPASS
+#             NuGet  list source 
+#             NuGet restore App\ISOS.TravelTracker.TravelReadyPnrProcessor.sln
+            
+#             dotnet restore App\ISOS.TravelTracker.TravelReadyPnrProcessor.Engine\ISOS.TravelTracker.TravelReadyPnrProcessor.Engine.csproj
+            
+#             cd 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\msbuild\current\bin\'
+#             MSBuild.exe C:\Users\circleci\project\App\ISOS.TravelTracker.TravelReadyPnrProcessor.sln -v:M -t:Clean -t:Rebuild -flp:LogFile=msbuild.log -flp:Verbosity=Normal -p:Configuration=Release -p:DeployDefaultTarget=WebPublish -p:WebPublishMethod=FileSystem -p:DeleteExistingFiles=True -p:PrecompileBeforePublish=True -p:publishUrl=C:\Users\circleci\project\Deployment\BUILD\SVC -p:DeployOnBuild=True -m -nr:false -p:Version=${BUILD_VERSION}      
+      - run:
+          name: Configs
+          shell: powershell.exe
+          command: |
+
+            cd C:\Users\circleci\project\Deployment
+            mkdir BUILD
+            cd C:\Users\circleci\project\Deployment\BUILD
+            mkdir ConfigFiles
+            mkdir MSI
+            Copy-Item "C:\Users\circleci\project\Deployment\Config Files\*.config" C:\Users\circleci\project\Deployment\BUILD\ConfigFiles
+            cd C:\Users\circleci\project\Deployment\BUILD\ConfigFiles
+            mkdir Configurations
+            Copy-Item "C:\Users\circleci\project\Deployment\Config Files\Configurations\*.config" C:\Users\circleci\project\Deployment\BUILD\ConfigFiles\Configurations
+      - run:
+          name: Reg update
+          shell: cmd.exe
+          command: |
+              REG ADD HKCU\SOFTWARE\Microsoft\VisualStudio\16.0_146d70dd_Config\MSBuild /t REG_DWORD /v EnableOutOfProcBuild /d 0 /f
+      - run:
+          name: Build MSI
+          shell: powershell.exe
+          command: |
+            cd 'C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\'
+            Write-Host "CDed into C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\Common7\IDE\"
+
+            .\devenv.exe C:\Users\circleci\project\App\ISOS.TravelTracker.TravelReadyPnrProcessor.sln /Project C:\Users\circleci\project\ISOS.TravelTracker.TravelReadyPnrProcessor.Setup /Out msi_errors.txt
